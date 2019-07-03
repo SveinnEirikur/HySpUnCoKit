@@ -102,3 +102,17 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# PyCharm
+.idea
+._*
+
+# datastuff
+drasl/
+data/
+results/
+output/
+initials/
+plugins/ACCESSUnmixing/
+matlabplugins/lhalf/
+*.mat
