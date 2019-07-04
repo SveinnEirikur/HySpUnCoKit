@@ -10,6 +10,7 @@ from itertools import product
 from matplotlib import pyplot as plt
 import seaborn as sns
 
+from tools.calc_SAD import calc_SAD_2
 
 def compare_methods(datasets: list, methods: list, datapath: str = None, hsids: dict = None,
                     metrics_to_plot: list = None, plot: bool = True) -> dict:
@@ -85,28 +86,38 @@ def compare_methods(datasets: list, methods: list, datapath: str = None, hsids: 
             results[dataset]['ref_abundances'] = hsids[dataset].ref_abundances
 
     if plot:
-        plot_results(results, metrics_to_plot, datasets, methods, num_runs, Path('./Results', timestamp))
-        print('Plots saved to', Path('./Results', timestamp).absolute())
+        plot_results(results, metrics_to_plot, datasets, methods,
+                     num_runs, Path(config['DEFAULT']['output'], timestamp))
 
-    with open(Path('./Results', timestamp, 'methods.cfg'), 'w') as configfile:
+    with open(Path(config['DEFAULT']['output'], timestamp, 'methods.cfg'), 'w') as configfile:
         config.write(configfile)
 
-    return results, hsids
+    return results
 
 
 def plot_results(results, metrics, datasets, methods, num_runs, respath):
+    """
+
+    :param results:
+    :param metrics:
+    :param datasets:
+    :param methods:
+    :param num_runs:
+    :param respath:
+    :return:
+    """
     sns.set_style('darkgrid')
 
     if 'loss' in metrics:
         fig, axes = plt.subplots(nrows=num_runs*len(datasets),
                                  ncols=len(methods),
-                                 figsize=(5*num_runs*len(datasets),
-                                          5*len(methods)))
+                                 figsize=(5*len(methods),
+                                          5*num_runs*len(datasets)))
         fig.subplots_adjust(hspace=0.5)
         fig.suptitle('Loss', fontsize='xx-large', verticalalignment='baseline')
-        for ax, (dset, run, method) in zip(axes.flatten(), product(datasets, range(num_runs), methods)):
-            ax.plot(results[method][dset][run]['loss'])
-            ax.set(title="{},\n{} run: {}".format(method, dset, run+1))
+        for ax, (dataset, run, method) in zip(axes.flatten(), product(datasets, range(num_runs), methods)):
+            ax.plot(results[dataset][method][run]['loss'])
+            ax.set(title="{},\n{} run: {}".format(method, dataset, run+1))
 
         plt.savefig(Path(respath, 'loss.png'), dpi=200, bbox_inches='tight', format='png')
         plt.clf()
@@ -114,13 +125,13 @@ def plot_results(results, metrics, datasets, methods, num_runs, respath):
     if 'SAD' in metrics:
         fig, axes = plt.subplots(nrows=num_runs*len(datasets),
                                  ncols=len(methods),
-                                 figsize=(5*num_runs*len(datasets),
-                                          5*len(methods)))
+                                 figsize=(5*len(methods),
+                                          5*num_runs*len(datasets)))
         fig.subplots_adjust(hspace=0.5)
         fig.suptitle('SAD', fontsize='xx-large', verticalalignment='center')
-        for ax, (dset, run, method) in zip(axes.flatten(), product(datasets, range(num_runs), methods)):
-            ax.plot(results[method][dset][run]['SAD'])
-            ax.set(title="{},\n{} run: {}".format(method, dset, run+1))
+        for ax, (dataset, run, method) in zip(axes.flatten(), product(datasets, range(num_runs), methods)):
+            ax.plot(results[dataset][method][run]['SAD'])
+            ax.set(title="{},\n{} run: {}".format(method, dataset, run+1))
 
         plt.savefig(Path(respath, 'SAD.png'), dpi=200, bbox_inches='tight', format='png')
         plt.clf()
@@ -130,20 +141,35 @@ def plot_results(results, metrics, datasets, methods, num_runs, respath):
             n_bands, n_endmembers = results[dataset]['ref_endmembers'].shape
             fig, axes = plt.subplots(nrows=len(methods) + 1,
                                      ncols=n_endmembers,
-                                     figsize=(5*len(methods),
-                                              5*n_endmembers))
-            fig.subplots_adjust(hspace=1)
-            fig.suptitle('Endmembers',fontsize='xx-large', verticalalignment='center')
-            ax = axes.flatten()
-            for i in range(n_endmembers):
-                ax[i].plot(results[dataset]['ref_endmembers'][:][i])
-            for aidx, (method, eidx) in zip(range(len(axes.flatten()),n_endmembers+1), product(methods, range(n_endmembers))):
+                                     figsize=(5*n_endmembers,
+                                              5*len(methods)+5))
+            fig.subplots_adjust(hspace=0.6)
+            fig.suptitle('Endmembers', fontsize='xx-large', verticalalignment='center')
+            ybound = [None for n in range(len(methods) + 1)]
+            for n in range(n_endmembers):
+                axes[0][n].plot(results[dataset]['ref_endmembers'][:, n])
+                axes[0][n].set(title="{},\n{} endmember: {}".format(dataset, 'reference', n + 1))
+                ybound[0] = axes[0][n].get_ybound()[1] if ybound[0] is None \
+                    else max(axes[0][n].get_ybound()[1],ybound[0])
+            for (midx, eidx) in product(range(len(methods)), range(n_endmembers)):
                 for run in range(num_runs):
-                    ax[aidx].plot(results[dataset][method][run]['endmembers'][:][eidx])
-                ax[aidx].set(title="{},\n{} endmember: {}".format(method, dataset, eidx+1))
+                    sad_m, idx_org_m, idx_hat_m, sad_k_m, s0 = \
+                        calc_SAD_2(results[dataset]['ref_endmembers'],
+                                   results[dataset][methods[midx]][run]['endmembers'])
+                    axes[midx+1][eidx].plot(results[dataset][methods[midx]][run]['endmembers'][:, idx_hat_m[eidx]],
+                                            label='Run: '+str(run))
+                axes[midx+1][eidx].set(title="{} endmember: {}".format(methods[midx], eidx+1))
+                axes[midx+1][eidx].legend(loc='best')
+                ybound[midx+1] = axes[midx+1][n].get_ybound()[1] if ybound[midx+1] is None \
+                    else max(axes[midx + 1][eidx].get_ybound()[1], ybound[midx+1])
+            for midx in range(len(methods)+1):
+                for eidx in range(n_endmembers):
+                    axes[midx][eidx].set_ybound(upper=ybound[midx])
 
             plt.savefig(Path(respath, dataset+'_endmembers.png'), dpi=200, bbox_inches='tight', format='png')
             plt.clf()
 
     if 'abundances' in metrics:
         pass  # To be implemented
+
+    print('Plots saved to', Path(respath).absolute())

@@ -7,10 +7,7 @@ from warnings import warn
 from scipy import io as spio
 from tqdm import tqdm as tqdm
 
-if __package__ == "lhalf":
-    from lhalf.lhalf import lhalf
-else:
-    from lhalf import lhalf
+import matlab.engine
 
 
 #%%
@@ -18,6 +15,8 @@ def run_method(hsidata, resdir, num_runs):
     __location__ = os.path.realpath(os.path.join(os.getcwd(),
                                                  os.path.dirname(__file__)))
     configpath = os.path.join(__location__, 'datasets.cfg')
+    mleng = matlab.engine.start_matlab()
+    mleng.addpath(__location__)
     parser = ConfigParser()
     parser.read(configpath)
     dataset = hsidata.dataset_name
@@ -27,20 +26,24 @@ def run_method(hsidata, resdir, num_runs):
     delta = parser.getfloat(dataset, 'delta')
     h = parser.getfloat(dataset, 'h')
     max_iter = parser.getint(dataset, 'max_iter')
-    verbose = parser.getint(dataset, 'verbose')
-    Y = hsidata.data
-    ref_endmembers = hsidata.ref_endmembers
-    init_endmembers = hsidata.init_endmembers
-    init_abundances = hsidata.init_abundances
+    verbose = parser.getboolean(dataset, 'verbose')
+    Y = matlab.double(hsidata.data.tolist())
+    ref_endmembers = matlab.double(hsidata.ref_endmembers.tolist())
+    init_endmembers = matlab.double(hsidata.init_endmembers.tolist())
+    init_abundances = matlab.double(hsidata.init_abundances.tolist())
     results = []
+
     for i in tqdm(range(num_runs), desc="Runs", unit="runs"):
-        A, S, J, SAD = lhalf(ref_endmembers, init_endmembers,
-                             init_abundances, Y, delta, h, q,
-                             max_iter, verbose=verbose)
+        output = mleng.lhalf(ref_endmembers, init_endmembers, init_abundances, Y, q, delta, h,
+                             max_iter, verbose, nargout=5)
+        A = np.array(output[0])
+        S = np.array(output[1])
+        J = np.array(output[2])
+        SAD = np.array(output[3])
         resfile = 'Run_' + str(i+1) + '.mat'
         outpath = Path(resdir, resfile)
-        results.append({'endmembers': A, 'abundances': S, 'loss': J, 'SAD': SAD})
+        results.append({'endmembers': A, 'abundances': S, 'loss': J.tolist()[0], 'SAD': SAD.tolist()[0]})
         spio.savemat(outpath, results[i])
-    with open(Path(resdir, 'datasets.cfg'), 'w') as configfile:
-        parser.write(configfile)
+
+    mleng.quit()
     return results

@@ -1,8 +1,8 @@
 from HySpUn import compare_methods
 
-def test_run(datapath='../../Datasets/',
-             datasets=['Samson'],
-             methods=['lhalf'],
-             metrics=['endmembers']):
-    results, hsids = compare_methods(datasets, methods, datapath=datapath, metrics_to_plot=metrics)
-    return results, hsids
+datapath='../../Datasets/'
+datasets=['Samson', 'Urban4']
+methods=['lhalf', 'ACCESSUnmixing','matlab_lhalf']
+metrics=['endmembers', 'loss', 'SAD']
+
+results = compare_methods(datasets, methods, datapath=datapath, metrics_to_plot=metrics)

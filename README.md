@@ -47,6 +47,11 @@ results = [{'endmembers': endmembers, 'abundances': abundances, 'loss': history[
 
 The provided example methods also save a `.mat` file with the results of each run in case of runtime interruptions, for further processing and archival purposes.
 
+### Matlab methods
+
+To use methods implemented in Matlab the Matlab Python Engine must be installed to your virtual environment following the instructions provided on the Mathworks website and comparable wrapper scripts created. 
+See the `matlabplugins/lhalf/run_as_plugin.py` code as an example of such.
+
 ## Adding data
 
 Hyper Spectral image data can be passed to the method using the provided HSID class, either by filling in the data manually or loading from a suitably formated `.mat` file:
