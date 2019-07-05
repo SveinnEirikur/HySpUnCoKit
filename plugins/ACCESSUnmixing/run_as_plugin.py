@@ -57,9 +57,12 @@ def run_method(data, resdir, num_runs):
         my_data.make_patches(1, num_patches=num_patches, use_orig=True)
         history = unmixer.fit(epochs=epochs, batch_size=batch_size)
         resfile = 'Run_' + str(i + 1) + '.mat'
-        endmembers = unmixer.get_endmembers()
-        abundances = unmixer.get_abundances()
-        resdict = {'endmembers': endmembers.transpose(), 'abundances': abundances, 'loss': history.history['loss'], 'SAD': history.history['SAD']}
+        endmembers = unmixer.get_endmembers().transpose()
+        abundances = unmixer.get_abundances().reshape(data.n_rows,data.n_cols,data.n_endmembers).transpose((1, 0, 2))
+        resdict = {'endmembers': endmembers,
+                   'abundances': abundances,
+                   'loss': history.history['loss'],
+                   'SAD': history.history['SAD']}
         results.append(resdict)
         spio.savemat(resdir / resfile, results[i])
         del unmixer

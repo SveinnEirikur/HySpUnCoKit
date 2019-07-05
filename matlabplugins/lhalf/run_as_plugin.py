@@ -37,12 +37,12 @@ def run_method(hsidata, resdir, num_runs):
         output = mleng.lhalf(ref_endmembers, init_endmembers, init_abundances, Y, q, delta, h,
                              max_iter, verbose, nargout=5)
         A = np.array(output[0])
-        S = np.array(output[1])
-        J = np.array(output[2])
-        SAD = np.array(output[3])
+        S = np.array(output[1]).reshape(hsidata.n_rows,hsidata.n_cols,hsidata.n_endmembers).transpose((1, 0, 2))
+        J = np.array(output[2]).tolist()[0]
+        SAD = np.array(output[3]).tolist()[0]
         resfile = 'Run_' + str(i+1) + '.mat'
         outpath = Path(resdir, resfile)
-        results.append({'endmembers': A, 'abundances': S, 'loss': J.tolist()[0], 'SAD': SAD.tolist()[0]})
+        results.append({'endmembers': A, 'abundances': S, 'loss': J, 'SAD': SAD})
         spio.savemat(outpath, results[i])
 
     mleng.quit()

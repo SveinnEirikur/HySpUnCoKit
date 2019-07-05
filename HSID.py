@@ -61,12 +61,14 @@ class HSID:
         :param bands_to_skip:
         :return:
         """
+        # Load data
         try:
             data = sio.loadmat(self.data_path)
         except NotImplementedError:
             data = hdf.File(self.data_path, 'r')
 
         y = np.asarray(data[self.data_var_name], dtype=np.float32)
+
         self.orig_data = y
 
         if y.shape[0] > y.shape[1]:
@@ -95,6 +97,7 @@ class HSID:
             self.has_reference = True
             if self.ref_var_names[1] in data:
                 self.ref_abundances = data[self.ref_var_names[1]]
+            self.n_endmembers = self.ref_endmembers.shape[1]
 
         if self.init_endmembers is not None:
             if self.init_endmembers.shape[0] < self.init_endmembers.shape[0]:
@@ -120,13 +123,11 @@ class HSID:
     def filter_zeros(self):
         """ Filters negative and small numbers to zero.
 
-        :return:
         """
         self.data[self.data < 1e-7] = 0
 
     def initialize_endmembers(self):
         """ To be implemented.
 
-        :return:
         """
         pass

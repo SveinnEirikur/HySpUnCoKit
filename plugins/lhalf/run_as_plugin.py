@@ -37,6 +37,7 @@ def run_method(hsidata, resdir, num_runs):
         A, S, J, SAD = lhalf(ref_endmembers, init_endmembers,
                              init_abundances, Y, delta, h, q,
                              max_iter, verbose=verbose)
+        S = S.reshape(hsidata.n_rows,hsidata.n_cols,hsidata.n_endmembers).transpose((1, 0, 2))
         resfile = 'Run_' + str(i+1) + '.mat'
         outpath = Path(resdir, resfile)
         results.append({'endmembers': A, 'abundances': S, 'loss': J, 'SAD': SAD})
