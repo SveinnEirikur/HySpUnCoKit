@@ -37,7 +37,14 @@ else:
 # Function that computes the S step
 def lhalf_S_step(S, ATA, ATX, h, q):
     if q > 0:
-        S = np.divide(S*ATX, ATA@S+np.diag([h])*q*np.power(S, q-1))
+        try:
+            h = np.diag(h)
+        except ValueError:
+            h = np.diag([h])
+        try:
+            S = np.divide(S * ATX, ATA @ S + np.matmul(h, q * np.power(S, q - 1)))
+        except ValueError:
+            S = np.divide(S * ATX, ATA @ S + h * q * np.power(S, q - 1))
     else:
         S = np.divide(S*ATX, ATA@S)
     S = np.maximum(1e-8, S)
@@ -76,7 +83,10 @@ def lhalf(Aorg, A, S, X, delta, h, q=0.5, max_iter=1000, verbose=False):
             SAD[i] = calc_SAD_2(Aorg, A[0:-1, :])[0]
             
             if i % 10 == 0:
-                hS = h*np.power(S, q)
+                try:
+                    hS = h @ np.power(S, q)
+                except ValueError:
+                    hS = h * np.power(S, q)
                 J.append(0.5*np.sum(np.power(X-A@S, 2))+np.sum(hS))
                 if verbose > 1:
                     verbose_plots(i, A, S, J, SAD)

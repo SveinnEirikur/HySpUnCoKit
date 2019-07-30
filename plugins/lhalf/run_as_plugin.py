@@ -25,7 +25,7 @@ def run_method(hsidata, resdir, num_runs):
         warn('No settings found for ' + dataset + ', using defaults.')
     q = parser.getfloat(dataset, 'q')
     delta = parser.getfloat(dataset, 'delta')
-    h = parser.getfloat(dataset, 'h')
+    h = [float(i) for i in parser.get(dataset, 'h').split(',')]
     max_iter = parser.getint(dataset, 'max_iter')
     verbose = parser.getint(dataset, 'verbose')
     Y = hsidata.data

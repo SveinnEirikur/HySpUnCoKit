@@ -166,9 +166,9 @@ class PlotWhileTraining(Callback):
         #     if self.plotGT:
         #         sad = compute_ASAM_rad(endmembers, self.endmembersGT, None)
         #         self.sads.append(sad)
-        #         # sio.savemat('sad.mat', {'SAD': self.sads,'M':endmembers,'M_GT':self.endmembersGT})
+        #         # spio.savemat('sad.mat', {'SAD': self.sads,'M':endmembers,'M_GT':self.endmembersGT})
         # if batch%50==0:
-        #     sio.savemat('sad.mat', {'SAD': self.sads, 'LOSS': self.losses})
+        #     spio.savemat('sad.mat', {'SAD': self.sads, 'LOSS': self.losses})
         return
 
     def on_epoch_end(self, epoch, logs=None):
@@ -182,7 +182,7 @@ class PlotWhileTraining(Callback):
             sad = compute_ASAM_rad(endmembers, self.endmembersGT, None)
             self.sads.append(sad)
             # print('SAD: ' + str(sad))
-            # sio.savemat('sad.mat', {'SAD': self.sads,'M':endmembers,'M_GT':self.endmembersGT})
+            # spio.savemat('sad.mat', {'SAD': self.sads,'M':endmembers,'M_GT':self.endmembersGT})
             sio.savemat('sad.mat', {'SAD': self.sads, 'LOSS': self.losses})
         if self.plot_every_n == 0 or epoch % self.plot_every_n != 0: return
         if self.plotS:

@@ -22,7 +22,7 @@ for i=1:maxIter
 
     if calcMisc==1 
         [SAD(i),~, ~,~]=calcSAD2(Aorg,A(1:end-1,:));
-        if mod(i,500)==0
+        if mod(i,10)==0
             hS=diag(h)*(S.^q);
             J(j)=0.5*sum(sum((X-A*S).^2))+sum(hS(:));j=j+1;
 

@@ -85,12 +85,14 @@ def compare_methods(datasets: list, methods: list, datapath: str = None, hsids: 
         if hsids[dataset].ref_abundances is not None:
             results[dataset]['ref_abundances'] = hsids[dataset].ref_abundances
 
+    with open(Path(config['DEFAULT']['output'], timestamp, 'methods.cfg'), 'w') as configfile:
+        config.write(configfile)
+
+    np.save(Path(config['DEFAULT']['output'], timestamp, 'Results.npy'), results, allow_pickle=True)
+
     if plot:
         plot_results(results, metrics_to_plot, datasets, methods,
                      n_runs, Path(config['DEFAULT']['output'], timestamp))
-
-    with open(Path(config['DEFAULT']['output'], timestamp, 'methods.cfg'), 'w') as configfile:
-        config.write(configfile)
 
     return results
 
@@ -110,34 +112,39 @@ def plot_results(results, metrics, datasets, methods, n_runs, respath):
     sns.set_context("talk")
 
     m_sad = {dataset: [[] for i in range(len(methods))] for dataset in datasets}
+    m_idx_hat = {dataset: [[]for i in range(len(methods))] for dataset in datasets}
 
     if 'loss' in metrics:
-        fig, axes = plt.subplots(nrows=n_runs * len(datasets),
-                                 ncols=len(methods),
-                                 figsize=(5 * len(methods),
-                                          5 * n_runs * len(datasets)))
 
-        for ax, (dataset, run, method) in zip(axes.flatten(), product(datasets, range(n_runs), methods)):
-            ax.plot(results[dataset][method][run]['loss'])
-            ax.set(title="{},\n{} run: {}".format(method, dataset, run+1))
+        for dataset in datasets:
+            fig, axes = plt.subplots(nrows=n_runs,
+                                     ncols=len(methods),
+                                     figsize=(5 * len(methods),
+                                              5 * n_runs))
 
-        fig.subplots_adjust(hspace=0.5)
-        plt.savefig(Path(respath, 'loss.png'), dpi=200, bbox_inches='tight', format='png')
-        plt.clf()
+            for ax, (run, method) in zip(axes.flatten(), product(range(n_runs), methods)):
+                ax.plot(results[dataset][method][run]['loss'])
+                ax.set(title="{},\n{} run: {}".format(method, dataset, run+1))
+
+            fig.subplots_adjust(hspace=0.5)
+            plt.savefig(Path(respath, dataset + '_loss.png'), dpi=200, bbox_inches='tight', format='png')
+            plt.clf()
 
     if 'SAD' in metrics:
-        fig, axes = plt.subplots(nrows=n_runs * len(datasets),
-                                 ncols=len(methods),
-                                 figsize=(5 * len(methods),
-                                          5 * n_runs * len(datasets)))
 
-        for ax, (dataset, run, method) in zip(axes.flatten(), product(datasets, range(n_runs), methods)):
-            ax.plot(results[dataset][method][run]['SAD'])
-            ax.set(title="{},\n{} run: {}".format(method, dataset, run+1))
+        for dataset in datasets:
+            fig, axes = plt.subplots(nrows=n_runs,
+                                     ncols=len(methods),
+                                     figsize=(5 * len(methods),
+                                              5 * n_runs))
 
-        fig.subplots_adjust(hspace=0.5)
-        plt.savefig(Path(respath, 'SAD.png'), dpi=200, bbox_inches='tight', format='png')
-        plt.clf()
+            for ax, (run, method) in zip(axes.flatten(), product(range(n_runs), methods)):
+                ax.plot(results[dataset][method][run]['SAD'])
+                ax.set(title="{},\n{} run: {}".format(method, dataset, run+1))
+
+            fig.subplots_adjust(hspace=0.5)
+            plt.savefig(Path(respath, dataset + '_SAD.png'), dpi=200, bbox_inches='tight', format='png')
+            plt.clf()
 
     if 'endmembers' in metrics:
 
@@ -145,14 +152,15 @@ def plot_results(results, metrics, datasets, methods, n_runs, respath):
             n_bands, n_endmembers = results[dataset]['ref_endmembers'].shape
             fig, axes = plt.subplots(nrows=len(methods) + 1,
                                      ncols=n_endmembers,
-                                     figsize=(5 * n_endmembers,
-                                              5 * len(methods) + 5),
+                                     figsize=(7 * n_endmembers,
+                                              6 * len(methods) + 6),
                                      sharey='row', sharex='col')
 
             # Plot reference endmembers
-            for n in range(n_endmembers):
-                axes[0][n].plot(results[dataset]['ref_endmembers'][:, n])
-                axes[0][n].set(title="{},\n{} endmember: {}".format(dataset, 'reference', n + 1))
+            if 'ref_endmembers' in results[dataset]:
+                for n in range(n_endmembers):
+                    axes[0][n].plot(results[dataset]['ref_endmembers'][:, n])
+                    axes[0][n].set(title="{},\n{} endmember: {}".format(dataset, 'reference', n + 1))
 
             # Plot every runs endmembers for each methods in apropriate column
             linecolor = sns.color_palette()[0]
@@ -162,6 +170,7 @@ def plot_results(results, metrics, datasets, methods, n_runs, respath):
                         calc_SAD_2(results[dataset]['ref_endmembers'],
                                    results[dataset][methods[midx]][run]['endmembers'])
                     m_sad[dataset][midx].append(sad_m)
+                    m_idx_hat[dataset][midx].append(idx_hat_m)
                     axes[midx+1][eidx].plot(results[dataset][methods[midx]][run]['endmembers'][:, idx_hat_m[eidx]],
                                             color=linecolor)
                 axes[midx+1][eidx].set(title="{} endmember: {}\n {} runs".format(methods[midx], eidx+1, n_runs))
@@ -171,7 +180,7 @@ def plot_results(results, metrics, datasets, methods, n_runs, respath):
 
     if 'abundances' in metrics:
 
-        cmap = sns.cubehelix_palette(dark=0, light=1, as_cmap=True)
+        cmap = sns.cubehelix_palette(start=.4, rot=-0.85, gamma=1.2, hue=2, light=0.85, dark=0.2, reverse=True, as_cmap=True)
 
         for dataset in datasets:
 
@@ -180,25 +189,26 @@ def plot_results(results, metrics, datasets, methods, n_runs, respath):
             gs = fig.add_gridspec(len(methods) + 1, n_endmembers)
 
             # Plot reference abundances
-            for n in range(n_endmembers):
-                ax = fig.add_subplot(gs[0, n], gid='endmember_ax_' + str(n))
-                sns.heatmap(results[dataset]['ref_abundances'][:, :, n], ax=ax, square=True, cmap=cmap)
-                ax.set(title="{},\nreference abundance map: {}".format(dataset, n + 1))
+            if 'ref_abundances' in results[dataset]:
+                for n in range(n_endmembers):
+                    ax = fig.add_subplot(gs[0, n], gid='endmember_ax_' + str(n))
+                    sns.heatmap(results[dataset]['ref_abundances'][:, :, n], ax=ax, square=True, cmap=cmap)
+                    ax.set(title="{},\nreference abundance map: {}".format(dataset, n + 1))
 
             # Plot abundances in their apropriate column
 
             for (midx, eidx) in product(range(len(methods)), range(n_endmembers)):
                 if not m_sad[dataset][midx]:
-                    print('Calculating SAD in abundances')
                     for run in range(n_runs):
                         sad_m, idx_org_m, idx_hat_m, sad_k_m, s0 = \
                             calc_SAD_2(results[dataset]['ref_endmembers'],
                                        results[dataset][methods[midx]][run]['endmembers'])
                         m_sad[dataset][midx].append(sad_m)
+                        m_idx_hat[dataset][midx].append(idx_hat_m)
                 m_run = np.argmin(m_sad[dataset][midx])
                 ax = fig.add_subplot(gs[midx + 1, eidx],
                                      gid=methods[midx] + '_ax_' + str(eidx) + str(m_run))
-                sns.heatmap(results[dataset][methods[midx]][m_run]['abundances'][:, :, idx_hat_m[eidx]],
+                sns.heatmap(results[dataset][methods[midx]][m_run]['abundances'][:, :, m_idx_hat[dataset][midx][m_run][eidx]],
                             ax=ax, square=True, cmap=cmap)
                 ax.set(title="{} run: {}\nabundance map: {}".format(methods[midx], m_run, eidx+1))
 

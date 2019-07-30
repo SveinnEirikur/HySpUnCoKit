@@ -1,5 +1,5 @@
 import numpy as np
-import scipy.io as sio
+import scipy.io as spio
 import h5py as hdf
 from typing import Any, List
 from pathlib import Path
@@ -19,7 +19,8 @@ class HSID:
     * `GT`: Reference endmembers ("Ground truth" endmembers)
     * `S_GT`: Reference abundances ("Ground truth" abundance maps)
 
-    HSID objects can however be initialized with different variable names and with reference data from a separate `.mat` file by initializing them manually.
+    HSID objects can however be initialized with different variable names and with reference data
+    from a separate `.mat` file by initializing them manually.
 
     """
     data_path: str = None
@@ -32,7 +33,6 @@ class HSID:
     n_pixels: int = None
     n_endmembers: int = None
     bands_last: bool = False
-    freq_list: List[float] = field(default_factory=list)
     data: np.ndarray = None
     orig_data: np.ndarray = None
     has_reference: bool = False
@@ -42,8 +42,9 @@ class HSID:
     ref_abundances: np.ndarray = None
     init_endmembers: np.ndarray = None
     init_abundances: np.ndarray = None
+    freq_list: List[float] = field(default_factory=list)
     bands_to_use: List[int] = field(default_factory=list)
-    S: Any = None
+    # S: Any = None
 
     def __post_init__(self):
         if self.data is None and self.data_path is not None:
@@ -63,7 +64,7 @@ class HSID:
         """
         # Load data
         try:
-            data = sio.loadmat(self.data_path)
+            data = spio.loadmat(self.data_path)
         except NotImplementedError:
             data = hdf.File(self.data_path, 'r')
 
@@ -80,24 +81,28 @@ class HSID:
             self.size = (self.n_cols, self.n_rows)
             self.n_pixels = self.n_cols * self.n_rows
 
-        if self.ref_path is not None:
-            ref_data = sio.loadmat(self.ref_path)
+        if not self.has_reference and self.ref_path is not None:
+            ref_data = spio.loadmat(self.ref_path)
             if self.ref_var_names[0] in ref_data:
-                self.ref_endmembers = data[self.ref_var_names[0]]
-                self.has_reference = True
+                self.ref_endmembers = ref_data[self.ref_var_names[0]]
                 if self.ref_endmembers.shape[0] < self.ref_endmembers.shape[1]:
                     self.ref_endmembers = self.ref_endmembers.transpose()
-                if self.ref_var_names[1] in data:
-                    self.ref_abundances = data[self.ref_var_names[1]]
                 self.n_endmembers = self.ref_endmembers.shape[1]
-        elif self.ref_var_names[0] in data:
+                self.has_reference = True
+                if len(self.ref_var_names) > 1 and self.ref_var_names[1] in ref_data:
+                    self.ref_abundances = ref_data[self.ref_var_names[1]]
+                    if self.ref_abundances.shape[0] == self.n_endmembers:
+                        self.ref_abundances = self.ref_abundances.transpose((1, 2, 0))
+        elif not self.has_reference and self.ref_var_names[0] in data:
             self.ref_endmembers = data[self.ref_var_names[0]]
             if self.ref_endmembers.shape[0] < self.ref_endmembers.shape[1]:
                 self.ref_endmembers = self.ref_endmembers.transpose()
             self.has_reference = True
-            if self.ref_var_names[1] in data:
-                self.ref_abundances = data[self.ref_var_names[1]]
             self.n_endmembers = self.ref_endmembers.shape[1]
+            if len(self.ref_var_names) > 1 and self.ref_var_names[1] in data:
+                self.ref_abundances = data[self.ref_var_names[1]]
+                if self.ref_abundances.shape[0] == self.n_endmembers:
+                    self.ref_abundances = self.ref_abundances.transpose((1,2,0))
 
         if self.init_endmembers is not None:
             if self.init_endmembers.shape[0] < self.init_endmembers.shape[0]:
