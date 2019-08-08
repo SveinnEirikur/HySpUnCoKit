@@ -1,4 +1,4 @@
-'''
+"""
 l half unmixing for hyperspectral image data.
 
 Based on Matlab code from Jakob Sigurðsson
@@ -23,15 +23,20 @@ SAD = Array containing SAD data
 Python code: Sveinn E. Ármannsson
 
 5. júní 2019, Reykjavík
-'''
+"""
 
 import numpy as np
+import random
 from tqdm import tqdm  # _notebook as tqdm
+
 if __package__ == "lhalf":
     from lhalf.calc_SAD import calc_SAD_2
 else:
     from calc_SAD import calc_SAD_2
 
+random_seed = 42
+random.seed(random_seed)
+np.random.seed(random_seed)
 
 #%%
 # Function that computes the S step
@@ -58,20 +63,17 @@ def lhalf_A_step(XST,SST,A):
     return A
 
 
-def verbose_plots(i, A, S, J, SAD):
-    pass
-
-
 #%%
 # Main function that computes the unmixing
 def lhalf(Aorg, A, S, X, delta, h, q=0.5, max_iter=1000, verbose=False):
     J = []
     SAD = np.empty(max_iter)
+    MSE = []
     S = np.transpose(S)
     M, r = A.shape
     N, P = X.shape
     assert M == N, "Array shape mismatch. A and X should have the same number of lines."
-    
+
     A = np.concatenate((A, delta*np.ones((1, r))))
     X = np.concatenate((X, delta*np.ones((1, P))))
     
@@ -80,18 +82,17 @@ def lhalf(Aorg, A, S, X, delta, h, q=0.5, max_iter=1000, verbose=False):
         S = lhalf_S_step(S, np.transpose(A)@A, np.transpose(A)@X, h, q)
         
         if verbose:
-            SAD[i] = calc_SAD_2(Aorg, A[0:-1, :])[0]
-            
+            SAD[i], idx_org, idx_hat, sad_k_m, s0 = calc_SAD_2(Aorg, A[0:-1, :])
             if i % 10 == 0:
                 try:
                     hS = h @ np.power(S, q)
                 except ValueError:
                     hS = h * np.power(S, q)
                 J.append(0.5*np.sum(np.power(X-A@S, 2))+np.sum(hS))
-                if verbose > 1:
-                    verbose_plots(i, A, S, J, SAD)
-    A = A[0:-1, :]
-    S = np.transpose(S)
+
+    A = A[0:-1, idx_hat]
+    S = np.transpose(S[idx_hat, :])
+
     if verbose >= 1:
         return A, S, J, SAD
     else:

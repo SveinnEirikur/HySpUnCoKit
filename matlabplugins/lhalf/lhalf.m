@@ -25,21 +25,6 @@ for i=1:maxIter
         if mod(i,10)==0
             hS=diag(h)*(S.^q);
             J(j)=0.5*sum(sum((X-A*S).^2))+sum(hS(:));j=j+1;
-
-            figure(1);
-            subplot(2,2,1)
-                plot(A);
-                title('Ítrun ' + string(i))
-            subplot(2,2,2)
-                hist(sum(S),100)
-                title('mean(sum(S)) = ' + string(mean(sum(S))))
-            subplot(2,2,3)
-                plot(diff(J));
-                title('max(diff(J)) = ' + string(max(diff(J))))
-            subplot(2,2,4)
-                plot(SAD);
-                title('SAD(' + string(i) + ') = ' + string(SAD(i)));
-            shg;drawnow
         end
     end
     t(i)=toc;

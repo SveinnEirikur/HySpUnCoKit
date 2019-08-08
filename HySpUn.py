@@ -9,8 +9,15 @@ from HSID import HSID
 from itertools import product
 from matplotlib import pyplot as plt
 import seaborn as sns
+import random
 
 from tools.calc_SAD import calc_SAD_2
+
+
+random_seed = 42
+random.seed(random_seed)
+np.random.seed(random_seed)
+
 
 def compare_methods(datasets: list, methods: list, datapath: str = None, hsids: dict = None,
                     metrics_to_plot: list = None, plot: bool = True) -> dict:
@@ -50,6 +57,7 @@ def compare_methods(datasets: list, methods: list, datapath: str = None, hsids: 
             hsids[dataset] = HSID(datapath + dataset + '.mat', dataset_name=dataset,
                                   init_endmembers=np.load(Path(initials_dir, dataset, 'endmembers.npy')),
                                   init_abundances=np.load(Path(initials_dir, dataset, 'abundances.npy')))
+
 
     n_runs = config.getint('DEFAULT', 'n_runs', fallback=1)
 
@@ -93,6 +101,74 @@ def compare_methods(datasets: list, methods: list, datapath: str = None, hsids: 
     if plot:
         plot_results(results, metrics_to_plot, datasets, methods,
                      n_runs, Path(config['DEFAULT']['output'], timestamp))
+
+    return results
+
+
+def optimize_methods(datasets: list, methods: list, datapath: str = None, hsids: dict = None) -> dict:
+    """A method for optimizing hyperparameters of hyperspectral unmixing methods
+
+    Extra parameters for each method, such as the path to the method, are accessed from the local methods.cfg file.
+    Further parameters should be set on a per dataset basis in its run_as_plugin.py and datasets.cfg.
+
+    Either datapath to load .mat files into HSID objects or dict with HSID objects must be provided.
+
+    :param datasets: list of strings of dataset names without .mat extensions, also assumed to be filenames
+                    accessed at datapath/dataset.mat if dataset key is not present in hsids dict.
+    :param methods: list of strings of method names, names and paths should be added to methods.cfg as well.
+    :param datapath: string that contains the directory path where .mat data should be accessed.
+    :param hsids: dict of HSID objects containing Hyper Spectral Image Data to be processed with dataset names as keys.
+
+    Optional:
+
+    :return: dict of Hyperopt trials objects containing the results of all methods and datasets.
+    """
+    if hsids is None:
+        hsids = {}
+
+    initials_dir = Path('./initials')
+
+    config = ConfigParser()
+    config.read('methods.cfg')
+
+    for dataset in datasets:
+        if dataset not in hsids:
+            hsids[dataset] = HSID(datapath + dataset + '.mat', dataset_name=dataset,
+                                  init_endmembers=np.load(Path(initials_dir, dataset, 'endmembers.npy')),
+                                  init_abundances=np.load(Path(initials_dir, dataset, 'abundances.npy')))
+
+    max_evals = config.getint('DEFAULT', 'max_evals', fallback=100)
+
+    print('Running methods: ')
+    print(*methods, sep=", ")
+    print('On the following datasets: ')
+    print(*datasets, sep=", ")
+    print('Maximum evaluations per method:', max_evals)
+
+    timestamp = '{:%Y-%m-%d_%H-%M}'.format(datetime.datetime.now())
+
+    results = {key: {k: [] for k in methods} for key in datasets}
+
+    for method in tqdm(methods, desc='Methods', unit='method'):
+        for dataset in tqdm(datasets, desc='Datasets', unit='sets'):
+            package_path = Path(config[method]['path'])
+            results_path = Path(config[method]['output'])
+            module_path = Path(package_path, 'run_as_plugin.py')
+            spec = spec_from_file_location(method, module_path, submodule_search_locations=[])
+            plugin = module_from_spec(spec)
+            sys.modules[spec.name] = plugin
+            spec.loader.exec_module(plugin)
+
+            respath = Path(results_path, timestamp, dataset, method)
+            Path.mkdir(respath, parents=True, exist_ok=True)
+
+            loss, pars, trials = plugin.opt_method(hsids[dataset], respath, max_evals)
+            results[dataset][method] = {'best loss': min(loss), 'best parameters': pars, 'loss progression': loss, 'trials': trials}
+
+    for dataset, method in product(datasets, methods):
+        print('{} {} Best loss: {}\nParameters: {}'.format(dataset, method,
+                                                           results[dataset][method]['best loss'],
+                                                           results[dataset][method]['best parameters']))
 
     return results
 
@@ -217,3 +293,28 @@ def plot_results(results, metrics, datasets, methods, n_runs, respath):
             plt.clf()
 
     print('Plots saved to', Path(respath).absolute())
+
+
+def mse(Y, A, S):
+    n, m = Y.shape
+    e = np.sum(np.power(Y - np.matmul(A, S), 2)) / (n * m)
+    return e
+
+
+def improvement_only(a, b):
+    try:
+        if min(a) < b:
+            return a + [min(a)]
+        else:
+            return a + [b]
+    except ValueError:
+        return a + [b]
+
+def save_config(resdir, dataset_name, pars, best_value):
+    config = ConfigParser()
+    config.add_section(dataset_name)
+    for key, value in pars.items():
+        config[dataset_name][key.split('_')[-1]] = str(value)
+
+    with open(Path(resdir, '{}_.cfg'.format(best_value)), 'w') as configfile:
+        config.write(configfile)

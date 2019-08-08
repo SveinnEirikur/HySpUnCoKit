@@ -2,6 +2,7 @@ import os
 import sys
 import scipy.io as sio
 import numpy as np
+import random
 from tensorflow.python.keras.constraints import non_neg
 from tensorflow.python.keras.layers import LeakyReLU, Input, Dense, BatchNormalization, GaussianDropout
 from tensorflow.python.keras.models import Model
@@ -10,6 +11,7 @@ from tensorflow.python.keras import backend as K
 from tensorflow.python.keras import optimizers as optimizers
 from tqdm import tqdm
 from keras_tqdm import TQDMCallback
+from tensorflow import set_random_seed
 
 if __package__ == "ACCESSUnmixing":
     from ACCESSUnmixing.unmixing.HSI import HSI
@@ -22,6 +24,10 @@ else:
     from unmixing.plotting import PlotWhileTraining
     from frosti import utils
 
+random_seed = 42
+random.seed(random_seed)
+np.random.seed(random_seed)
+set_random_seed(random_seed)
 
 # matplotlib.use('TkAgg')
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
