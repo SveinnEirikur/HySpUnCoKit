@@ -251,7 +251,7 @@ def plot_results(results, hsids, metrics, datasets, methods, n_runs, respath):
                     if hsids[dataset].freq_list is not None:
                         freq_list = hsids[dataset].freq_list
                     else:
-                        freq_list = [i in range(len(ref_endmember))]
+                        freq_list = [i for i in range(ref_endmember.shape[0])]
                     axes[0][n].plot(freq_list, ref_endmember)
                     axes[0][n].set(title="{},\n{} endmember: {}".format(dataset, 'reference', n + 1))
                     axes[0][n].fill_between(freq_list, np.nanmin(ref_endmember), np.nanmax(ref_endmember),
@@ -273,7 +273,7 @@ def plot_results(results, hsids, metrics, datasets, methods, n_runs, respath):
                     if hsids[dataset].freq_list is not None:
                         freq_list = hsids[dataset].freq_list
                     else:
-                        freq_list = [i in range(len(endmember))]
+                        freq_list = [i for i in range(len(endmember))]
                     axes[midx+1][eidx].plot(freq_list, endmember,
                                             color=linecolor)
                 axes[midx+1][eidx].set(title="{} endmember: {}\n {} runs".format(methods[midx], eidx+1, n_runs))

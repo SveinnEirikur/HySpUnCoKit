@@ -11,16 +11,25 @@ def VCA(data, n_end):
     a, i, y = vca(data, n_end)
     m, n = data.shape
     s = np.ones((n, n_end))*1/n_end
+    a[a < 1e-7] = 0
+    s[s < 1e-7] = 0
+
     return a, s
 
 def ATGP(data, n_end):
     a, i = atgp(data, n_end)
     m, n = data.shape
     s = np.ones((n, n_end))*1/n_end
+    a[a < 1e-7] = 0
+    s[s < 1e-7] = 0
+
     return a, s
 
 def RAND(data, n_end):
     m, n = data.shape
     a = np.random.random((m, n_end))
     s = np.random.random((n, n_end))
+    a[a < 1e-7] = 0
+    s[s < 1e-7] = 0
+
     return a, s

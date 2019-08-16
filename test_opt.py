@@ -9,9 +9,9 @@ random_seed = 42
 np.random.seed(random_seed)
 random.seed(random_seed)
 
-datapath='../../Datasets/'
-datasets=['Samson']#, 'Jasper', 'Urban4', 'Urban6']
-methods=['lhalf']#, 'ACCESSUnmixing', 'matlab_lhalf']
+datapath = '../../Datasets/'
+datasets = ['Samson', 'Jasper', 'Urban4', 'Urban6']
+methods = ['lhalf']#, 'ACCESSUnmixing', 'matlab_lhalf']
 
 Jasper_inits = spio.loadmat('../../Datasets/Jasper_VCA.mat')
 init_endmembers = np.array(Jasper_inits['M']).transpose()
@@ -22,4 +22,4 @@ jasper = HSID(data_path='../../Datasets/Jasper.mat', dataset_name='Jasper', size
 hsids = {'Jasper': jasper}
 
 results = optimize_methods(datasets=datasets, methods=methods, datapath=datapath, hsids=hsids, initializer=VCA)
-np.save('./test/08_16_1000.npy', results)
+np.save('./test/08_16_1400.npy', results)

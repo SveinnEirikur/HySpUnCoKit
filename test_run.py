@@ -10,7 +10,7 @@ random.seed(random_seed)
 np.random.seed(random_seed)
 
 datapath = '../../Datasets/'
-datasets = ['Jasper']#, 'Samson', 'Urban4']
+datasets = ['Samson']#, 'Jasper', 'Urban4', 'Urban6']
 methods = ['lhalf']#, 'ACCESSUnmixing', 'matlab_lhalf']
 metrics = ['loss', 'SAD', 'endmembers', 'abundances']
 

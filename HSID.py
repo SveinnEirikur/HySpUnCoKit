@@ -42,8 +42,8 @@ class HSID:
     ref_abundances: np.ndarray = None
     init_endmembers: np.ndarray = None
     init_abundances: np.ndarray = None
-    freq_list: List[float] = field(default_factory=list)
-    bands_to_use: List[int] = field(default_factory=list)
+    freq_list: List[float] = None
+    bands_to_use: List[int] = None
 
     def __post_init__(self):
         if self.data is None and self.data_path is not None:

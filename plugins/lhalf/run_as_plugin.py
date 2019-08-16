@@ -85,10 +85,10 @@ def opt_method(hsidata, resdir, max_evals):
     space = {
         'max_iter': max_iter,
         'q': hp.uniform('lhalf_q', 0, 1),
-        'delta': hp.uniform('lhalf_' + dataset_name + '_delta', 0, 1000)
+        'delta': hp.lognormal('lhalf_' + dataset_name + '_delta', 0, 2)
     }
 
-    h = [hp.uniform('lhalf_' + dataset_name + '_h' + str(i), 0, 3000) for i in range(hsidata.n_endmembers)]
+    h = [hp.lognormal('lhalf_' + dataset_name + '_h' + str(i), 0, 1) for i in range(hsidata.n_endmembers)]
 
     space['h'] = h
 
