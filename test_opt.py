@@ -3,14 +3,15 @@ from HSID import HSID
 import numpy as np
 import scipy.io as spio
 import random
+from initializers import VCA
 
 random_seed = 42
 np.random.seed(random_seed)
 random.seed(random_seed)
 
 datapath='../../Datasets/'
-datasets=['Jasper', 'Samson', 'Urban4', 'Urban6']
-methods=['lhalf', 'ACCESSUnmixing', 'matlab_lhalf']
+datasets=['Samson']#, 'Jasper', 'Urban4', 'Urban6']
+methods=['lhalf']#, 'ACCESSUnmixing', 'matlab_lhalf']
 
 Jasper_inits = spio.loadmat('../../Datasets/Jasper_VCA.mat')
 init_endmembers = np.array(Jasper_inits['M']).transpose()
@@ -20,5 +21,5 @@ jasper = HSID(data_path='../../Datasets/Jasper.mat', dataset_name='Jasper', size
               init_endmembers=init_endmembers, init_abundances=init_abundances)
 hsids = {'Jasper': jasper}
 
-results = optimize_methods(datasets=datasets, methods=methods, datapath=datapath, hsids=hsids)
-np.save('./test/08_08_1700.npy', results)
+results = optimize_methods(datasets=datasets, methods=methods, datapath=datapath, hsids=hsids, initializer=VCA)
+np.save('./test/08_16_1000.npy', results)

@@ -20,7 +20,7 @@ np.random.seed(random_seed)
 
 
 def compare_methods(datasets: list, methods: list, datapath: str = None, hsids: dict = None,
-                    metrics_to_plot: list = None, plot: bool = True) -> dict:
+                    initializer: staticmethod = None, metrics_to_plot: list = None, plot: bool = True) -> dict:
     """A method for comparing hyperspectral unmixing methods
 
     Extra parameters for each method, such as the path to the method, are accessed from the local methods.cfg file.
@@ -36,6 +36,8 @@ def compare_methods(datasets: list, methods: list, datapath: str = None, hsids: 
 
     Optional:
 
+    :param initializer: a function that takes as two arguments: the data and required number of endmembers, and returns
+                        initial endmembers and abundances in that order
     :param plot: boolean which if true the method saves png plots based on method results and metrics.
     :param metrics_to_plot: list of strings of metric names to plot.
 
@@ -57,7 +59,8 @@ def compare_methods(datasets: list, methods: list, datapath: str = None, hsids: 
             hsids[dataset] = HSID(datapath + dataset + '.mat', dataset_name=dataset,
                                   init_endmembers=np.load(Path(initials_dir, dataset, 'endmembers.npy')),
                                   init_abundances=np.load(Path(initials_dir, dataset, 'abundances.npy')))
-
+        if initializer is not None:
+            hsids[dataset].initialize(initializer)
 
     n_runs = config.getint('DEFAULT', 'n_runs', fallback=1)
 
@@ -99,13 +102,14 @@ def compare_methods(datasets: list, methods: list, datapath: str = None, hsids: 
     np.save(Path(config['DEFAULT']['output'], timestamp, 'Results.npy'), results, allow_pickle=True)
 
     if plot:
-        plot_results(results, metrics_to_plot, datasets, methods,
+        plot_results(results, hsids, metrics_to_plot, datasets, methods,
                      n_runs, Path(config['DEFAULT']['output'], timestamp))
 
     return results
 
 
-def optimize_methods(datasets: list, methods: list, datapath: str = None, hsids: dict = None) -> dict:
+def optimize_methods(datasets: list, methods: list, datapath: str = None, hsids: dict = None,
+                     initializer: staticmethod = None,) -> dict:
     """A method for optimizing hyperparameters of hyperspectral unmixing methods
 
     Extra parameters for each method, such as the path to the method, are accessed from the local methods.cfg file.
@@ -116,10 +120,12 @@ def optimize_methods(datasets: list, methods: list, datapath: str = None, hsids:
     :param datasets: list of strings of dataset names without .mat extensions, also assumed to be filenames
                     accessed at datapath/dataset.mat if dataset key is not present in hsids dict.
     :param methods: list of strings of method names, names and paths should be added to methods.cfg as well.
-    :param datapath: string that contains the directory path where .mat data should be accessed.
-    :param hsids: dict of HSID objects containing Hyper Spectral Image Data to be processed with dataset names as keys.
 
     Optional:
+    :param datapath: string that contains the directory path where .mat data should be accessed.
+    :param hsids: dict of HSID objects containing Hyper Spectral Image Data to be processed with dataset names as keys.
+    :param initializer: a function that takes as two arguments: the data and required number of endmembers, and returns
+                        initial endmembers and abundances in that order
 
     :return: dict of Hyperopt trials objects containing the results of all methods and datasets.
     """
@@ -136,7 +142,8 @@ def optimize_methods(datasets: list, methods: list, datapath: str = None, hsids:
             hsids[dataset] = HSID(datapath + dataset + '.mat', dataset_name=dataset,
                                   init_endmembers=np.load(Path(initials_dir, dataset, 'endmembers.npy')),
                                   init_abundances=np.load(Path(initials_dir, dataset, 'abundances.npy')))
-
+        if initializer is not None:
+            hsids[dataset].initialize(initializer)
     max_evals = config.getint('DEFAULT', 'max_evals', fallback=100)
 
     print('Running methods: ')
@@ -163,7 +170,8 @@ def optimize_methods(datasets: list, methods: list, datapath: str = None, hsids:
             Path.mkdir(respath, parents=True, exist_ok=True)
 
             loss, pars, trials = plugin.opt_method(hsids[dataset], respath, max_evals)
-            results[dataset][method] = {'best loss': min(loss), 'best parameters': pars, 'loss progression': loss, 'trials': trials}
+            results[dataset][method] = {'best loss': min(loss), 'best parameters': pars,
+                                        'loss progression': loss, 'trials': trials}
 
     for dataset, method in product(datasets, methods):
         print('{} {} Best loss: {}\nParameters: {}'.format(dataset, method,
@@ -173,7 +181,7 @@ def optimize_methods(datasets: list, methods: list, datapath: str = None, hsids:
     return results
 
 
-def plot_results(results, metrics, datasets, methods, n_runs, respath):
+def plot_results(results, hsids, metrics, datasets, methods, n_runs, respath):
     """
 
     :param results:
@@ -235,9 +243,19 @@ def plot_results(results, metrics, datasets, methods, n_runs, respath):
             # Plot reference endmembers
             if 'ref_endmembers' in results[dataset]:
                 for n in range(n_endmembers):
-                    axes[0][n].plot(results[dataset]['ref_endmembers'][:, n])
+                    ref_endmember = results[dataset]['ref_endmembers'][:, n]
+                    if hsids[dataset].bands_to_use is not None:
+                        for i in range(len(hsids[dataset].bands_to_use)):
+                            if hsids[dataset].bands_to_use[i] is np.nan:
+                                ref_endmember = np.insert(ref_endmember,i,np.nan)
+                    if hsids[dataset].freq_list is not None:
+                        freq_list = hsids[dataset].freq_list
+                    else:
+                        freq_list = [i in range(len(ref_endmember))]
+                    axes[0][n].plot(freq_list, ref_endmember)
                     axes[0][n].set(title="{},\n{} endmember: {}".format(dataset, 'reference', n + 1))
-
+                    axes[0][n].fill_between(freq_list, np.nanmin(ref_endmember), np.nanmax(ref_endmember),
+                                            where=np.isnan(ref_endmember), color='grey', alpha=0.5)
             # Plot every runs endmembers for each methods in apropriate column
             linecolor = sns.color_palette()[0]
             for (midx, eidx) in product(range(len(methods)), range(n_endmembers)):
@@ -247,16 +265,29 @@ def plot_results(results, metrics, datasets, methods, n_runs, respath):
                                    results[dataset][methods[midx]][run]['endmembers'])
                     m_sad[dataset][midx].append(sad_m)
                     m_idx_hat[dataset][midx].append(idx_hat_m)
-                    axes[midx+1][eidx].plot(results[dataset][methods[midx]][run]['endmembers'][:, idx_hat_m[eidx]],
+                    endmember = results[dataset][methods[midx]][run]['endmembers'][:, idx_hat_m[eidx]]
+                    if hsids[dataset].bands_to_use is not None:
+                        for i in range(len(hsids[dataset].bands_to_use)):
+                            if hsids[dataset].bands_to_use[i] is np.nan:
+                                endmember = np.insert(endmember,i,np.nan)
+                    if hsids[dataset].freq_list is not None:
+                        freq_list = hsids[dataset].freq_list
+                    else:
+                        freq_list = [i in range(len(endmember))]
+                    axes[midx+1][eidx].plot(freq_list, endmember,
                                             color=linecolor)
                 axes[midx+1][eidx].set(title="{} endmember: {}\n {} runs".format(methods[midx], eidx+1, n_runs))
+                axes[midx+1][eidx].fill_between(freq_list, np.nanmin(endmember), np.nanmax(endmember),
+                                                where=np.isnan(endmember), color='grey', alpha=0.5)
+
             plt.subplots_adjust(hspace=0.5)
             plt.savefig(Path(respath, dataset+'_endmembers.png'), dpi=200, format='png')
             plt.clf()
 
     if 'abundances' in metrics:
 
-        cmap = sns.cubehelix_palette(start=.4, rot=-0.85, gamma=1.2, hue=2, light=0.85, dark=0.2, reverse=True, as_cmap=True)
+        cmap = sns.cubehelix_palette(start=.4, rot=-0.85, gamma=1.2, hue=2, light=0.85,
+                                     dark=0.2, reverse=True, as_cmap=True)
 
         for dataset in datasets:
 
@@ -284,8 +315,8 @@ def plot_results(results, metrics, datasets, methods, n_runs, respath):
                 m_run = np.argmin(m_sad[dataset][midx])
                 ax = fig.add_subplot(gs[midx + 1, eidx],
                                      gid=methods[midx] + '_ax_' + str(eidx) + str(m_run))
-                sns.heatmap(results[dataset][methods[midx]][m_run]['abundances'][:, :, m_idx_hat[dataset][midx][m_run][eidx]],
-                            ax=ax, square=True, cmap=cmap)
+                sns.heatmap(results[dataset][methods[midx]][m_run]['abundances'][:, :,
+                            m_idx_hat[dataset][midx][m_run][eidx]], ax=ax, square=True, cmap=cmap)
                 ax.set(title="{} run: {}\nabundance map: {}".format(methods[midx], m_run, eidx+1))
 
             plt.subplots_adjust(hspace=0.6)

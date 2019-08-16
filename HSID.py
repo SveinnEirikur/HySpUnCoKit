@@ -44,7 +44,6 @@ class HSID:
     init_abundances: np.ndarray = None
     freq_list: List[float] = field(default_factory=list)
     bands_to_use: List[int] = field(default_factory=list)
-    # S: Any = None
 
     def __post_init__(self):
         if self.data is None and self.data_path is not None:
@@ -55,7 +54,7 @@ class HSID:
         if isinstance(self.ref_path, str):
             self.ref_path = Path(self.ref_path)
 
-    def load_data(self, normalize=False, bands_to_skip=None):
+    def load_data(self, normalize=True, bands_to_skip=None):
         """ Loads data from .mat file in data_path into the dataclass.
 
         :param normalize:
@@ -116,7 +115,8 @@ class HSID:
             if bands_to_skip is not None:
                 all_bands = range(y.shape[1])
                 self.bands_to_use = list(set(all_bands) - set(bands_to_skip))
-            self.data = self.data[:, :, self.bands_to_use]
+            if y.shape[-1] == len(self.bands_to_use):
+                y = y[:, :, self.bands_to_use]
 
         if self.bands_last:
             y = y.transpose()
@@ -131,8 +131,14 @@ class HSID:
         """
         self.data[self.data < 1e-7] = 0
 
-    def initialize_endmembers(self):
+    def normalize(self):
+        """ Normalize data.
+
+        """
+        self.data[self.data < 1e-7] = 0
+
+    def initialize(self, initializer):
         """ To be implemented.
 
         """
-        pass
+        self.init_endmembers, self.init_abundances = initializer(self.data, self.n_endmembers)

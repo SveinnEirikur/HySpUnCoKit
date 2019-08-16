@@ -47,7 +47,7 @@ def run_method(hsidata, resdir, num_runs):
         warn('No settings found for ' + dataset + ', using defaults.')
     q = parser.getfloat(dataset, 'q')
     delta = parser.getfloat(dataset, 'delta')
-    h = matlab.double([float(i) for i in parser.get(dataset, 'h').split(',')])
+    h = [parser.getfloat(dataset, i) for i in ['h' + str(i) for i in range(hsidata.n_endmembers)]]
     max_iter = parser.getint(dataset, 'max_iter')
     verbose = parser.getboolean(dataset, 'verbose')
     Y = matlab.double(hsidata.data.tolist())

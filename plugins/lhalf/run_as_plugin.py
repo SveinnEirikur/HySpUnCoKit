@@ -12,10 +12,7 @@ from functools import reduce
 
 from HySpUn import mse, improvement_only, save_config
 
-if __package__ == "lhalf":
-    from lhalf.lhalf import lhalf
-else:
-    from lhalf import lhalf
+from lhalf.lhalf import lhalf
 
 random_seed = 42
 random.seed(random_seed)
@@ -34,7 +31,7 @@ def run_method(hsidata, resdir, num_runs):
         warn('No settings found for ' + dataset + ', using defaults.')
     q = parser.getfloat(dataset, 'q')
     delta = parser.getfloat(dataset, 'delta')
-    h = [float(i) for i in parser.get(dataset, 'h').split(',')]
+    h = [parser.getfloat(dataset, i) for i in ['h' + str(i) for i in range(hsidata.n_endmembers)]]
     max_iter = parser.getint(dataset, 'max_iter')
     verbose = parser.getint(dataset, 'verbose')
 
@@ -45,13 +42,13 @@ def run_method(hsidata, resdir, num_runs):
 
     results = []
     for i in tqdm(range(num_runs), desc="Runs", unit="runs"):
-        A, S, J, SAD, MSE = lhalf(ref_endmembers, init_endmembers,
+        A, S, J, SAD = lhalf(ref_endmembers, init_endmembers,
                              init_abundances, Y, delta, h, q,
                              max_iter, verbose=verbose)
         S = S.reshape(hsidata.n_rows,hsidata.n_cols,hsidata.n_endmembers).transpose((1, 0, 2))
         resfile = 'Run_' + str(i+1) + '.mat'
         outpath = Path(resdir, resfile)
-        results.append({'endmembers': A, 'abundances': S, 'loss': J, 'SAD': SAD, 'MSE': MSE})
+        results.append({'endmembers': A, 'abundances': S, 'loss': J, 'SAD': SAD})
         spio.savemat(outpath, results[i])
     with open(Path(resdir, 'datasets.cfg'), 'w') as configfile:
         parser.write(configfile)
@@ -91,7 +88,7 @@ def opt_method(hsidata, resdir, max_evals):
         'delta': hp.uniform('lhalf_' + dataset_name + '_delta', 0, 1000)
     }
 
-    h = [hp.uniform('lhalf_' + dataset_name + '_h' + str(i), 0, 1000) for i in range(hsidata.n_endmembers)]
+    h = [hp.uniform('lhalf_' + dataset_name + '_h' + str(i), 0, 3000) for i in range(hsidata.n_endmembers)]
 
     space['h'] = h
 
