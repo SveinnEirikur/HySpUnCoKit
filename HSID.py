@@ -91,7 +91,11 @@ class HSID:
                 if len(self.ref_var_names) > 1 and self.ref_var_names[1] in ref_data:
                     self.ref_abundances = ref_data[self.ref_var_names[1]]
                     if self.ref_abundances.shape[0] == self.n_endmembers:
-                        self.ref_abundances = self.ref_abundances.transpose((1, 2, 0))
+                        try:
+                            self.ref_abundances = self.ref_abundances.transpose((1, 2, 0))
+                        except ValueError:
+                            self.ref_abundances = self.ref_abundances.reshape(self.n_endmembers, self.n_rows, self.n_cols)
+                            self.ref_abundances = self.ref_abundances.transpose((1, 2, 0))
         elif not self.has_reference and self.ref_var_names[0] in data:
             self.ref_endmembers = data[self.ref_var_names[0]]
             if self.ref_endmembers.shape[0] < self.ref_endmembers.shape[1]:
@@ -142,3 +146,5 @@ class HSID:
 
         """
         self.init_endmembers, self.init_abundances = initializer(self.data, self.n_endmembers)
+
+        return (self.init_endmembers, self.init_abundances)

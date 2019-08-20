@@ -57,7 +57,7 @@ def run_method(hsidata, resdir, num_runs):
 
 #%%
 
-def opt_method(hsidata, resdir, max_evals):
+def opt_method(hsidata, initializers, resdir, max_evals):
     dataset_name = hsidata.dataset_name
 
     __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
@@ -71,8 +71,9 @@ def opt_method(hsidata, resdir, max_evals):
 
         Y = hsidata.data
         ref_endmembers = hsidata.ref_endmembers
-        init_endmembers = hsidata.init_endmembers
-        init_abundances = hsidata.init_abundances
+        initializer = hyperpars.pop('initializer')
+        init_endmembers = initials[initializer][0]
+        init_abundances = initials[initializer][1]
 
         A, S, J, SAD = lhalf(ref_endmembers, init_endmembers,
                              init_abundances, Y, **hyperpars, verbose=True)
@@ -82,11 +83,19 @@ def opt_method(hsidata, resdir, max_evals):
         results = {'endmembers': A, 'abundances': S, 'loss': J, 'SAD': SAD, 'MSE': MSE}
         return {'loss': SAD[-1], 'status': STATUS_OK, 'attachments': results}
 
+    initials = {}
+    initial_keys = []
+    for key, value in initializers.items():
+        initial_keys.append(key)
+        initials[key] = (hsidata.initialize(value))
+
     space = {
         'max_iter': max_iter,
-        'q': hp.uniform('lhalf_q', 0, 1),
-        'delta': hp.lognormal('lhalf_' + dataset_name + '_delta', 0, 2)
+        'q': hp.uniform('lhalf_' + dataset_name + '_q', 0, 1),
+        'delta': hp.lognormal('lhalf_' + dataset_name + '_delta', 0, 2),
+        'initializer': hp.choice('lhalf_' + dataset_name + '_initializer', initializers)
     }
+
 
     h = [hp.lognormal('lhalf_' + dataset_name + '_h' + str(i), 0, 1) for i in range(hsidata.n_endmembers)]
 
@@ -104,5 +113,5 @@ def opt_method(hsidata, resdir, max_evals):
     improvements = reduce(improvement_only, trials.losses(), [])
 
     save_config(resdir, dataset_name, pars, trials.average_best_error())
-
+    print(enumerate(initial_keys))
     return improvements, pars, trials

@@ -13,11 +13,9 @@ import random
 
 from tools.calc_SAD import calc_SAD_2
 
-
 random_seed = 42
 random.seed(random_seed)
 np.random.seed(random_seed)
-
 
 def compare_methods(datasets: list, methods: list, datapath: str = None, hsids: dict = None,
                     initializer: staticmethod = None, metrics_to_plot: list = None, plot: bool = True) -> dict:
@@ -56,9 +54,7 @@ def compare_methods(datasets: list, methods: list, datapath: str = None, hsids: 
 
     for dataset in datasets:
         if dataset not in hsids:
-            hsids[dataset] = HSID(datapath + dataset + '.mat', dataset_name=dataset,
-                                  init_endmembers=np.load(Path(initials_dir, dataset, 'endmembers.npy')),
-                                  init_abundances=np.load(Path(initials_dir, dataset, 'abundances.npy')))
+            hsids[dataset] = HSID(datapath + dataset + '.mat', dataset_name=dataset)
         if initializer is not None:
             hsids[dataset].initialize(initializer)
 
@@ -109,7 +105,7 @@ def compare_methods(datasets: list, methods: list, datapath: str = None, hsids: 
 
 
 def optimize_methods(datasets: list, methods: list, datapath: str = None, hsids: dict = None,
-                     initializer: staticmethod = None,) -> dict:
+                     initializers: dict = None,) -> dict:
     """A method for optimizing hyperparameters of hyperspectral unmixing methods
 
     Extra parameters for each method, such as the path to the method, are accessed from the local methods.cfg file.
@@ -139,11 +135,7 @@ def optimize_methods(datasets: list, methods: list, datapath: str = None, hsids:
 
     for dataset in datasets:
         if dataset not in hsids:
-            hsids[dataset] = HSID(datapath + dataset + '.mat', dataset_name=dataset,
-                                  init_endmembers=np.load(Path(initials_dir, dataset, 'endmembers.npy')),
-                                  init_abundances=np.load(Path(initials_dir, dataset, 'abundances.npy')))
-        if initializer is not None:
-            hsids[dataset].initialize(initializer)
+            hsids[dataset] = HSID(datapath + dataset + '.mat', dataset_name=dataset)
     max_evals = config.getint('DEFAULT', 'max_evals', fallback=100)
 
     print('Running methods: ')
@@ -169,7 +161,7 @@ def optimize_methods(datasets: list, methods: list, datapath: str = None, hsids:
             respath = Path(results_path, timestamp, dataset, method)
             Path.mkdir(respath, parents=True, exist_ok=True)
 
-            loss, pars, trials = plugin.opt_method(hsids[dataset], respath, max_evals)
+            loss, pars, trials = plugin.opt_method(hsids[dataset], initializers, respath, max_evals)
             results[dataset][method] = {'best loss': min(loss), 'best parameters': pars,
                                         'loss progression': loss, 'trials': trials}
 

@@ -3,23 +3,25 @@ from HSID import HSID
 import numpy as np
 import scipy.io as spio
 import random
-from initializers import VCA
+from initializers import ATGP, ATGP_srand, ATGP_szero, ATGP_sunsal, RAND, VCA
 
 random_seed = 42
 np.random.seed(random_seed)
 random.seed(random_seed)
 
 datapath = '../../Datasets/'
-datasets = ['Samson', 'Jasper', 'Urban4', 'Urban6']
+datasets = ['Urban4']#, 'Samson', 'Urban4', 'Urban6']
 methods = ['lhalf']#, 'ACCESSUnmixing', 'matlab_lhalf']
 
-Jasper_inits = spio.loadmat('../../Datasets/Jasper_VCA.mat')
-init_endmembers = np.array(Jasper_inits['M']).transpose()
-init_abundances = np.ones((10000,4))*0.25
-jasper = HSID(data_path='../../Datasets/Jasper.mat', dataset_name='Jasper', size=(100,100), n_bands=198,
-              n_rows=100, n_cols=100, n_pixels=10000, ref_path='../../Datasets/Jasper_GT.mat', ref_var_names=('M', 'A'),
-              init_endmembers=init_endmembers, init_abundances=init_abundances)
-hsids = {'Jasper': jasper}
+urban4 = HSID(data_path='/Volumes/Music/Datasets/Urban/Urban_R162.mat', dataset_name='Urban4', size=(307,307),
+              n_bands=162, n_rows=307, n_cols=307, n_pixels=307*307, ref_var_names=('M', 'A'),
+              ref_path='/Volumes/Music/Datasets/Urban/GroundTruth/end4.mat')
+jasper = HSID(data_path='/Volumes/Music/Datasets/Jasper Ridge/jasperRidge2_R198.mat', dataset_name='Jasper',
+              size=(100,100), n_bands=198, n_rows=100, n_cols=100, n_pixels=10000, ref_var_names=('M', 'A'),
+              ref_path='/Volumes/Music/Datasets/Jasper Ridge/GroundTruth/end4.mat')
+hsids = {'Jasper': jasper, 'Urban4': urban4}
 
-results = optimize_methods(datasets=datasets, methods=methods, datapath=datapath, hsids=hsids, initializer=VCA)
-np.save('./test/08_16_1400.npy', results)
+results = optimize_methods(datasets=datasets, methods=methods, datapath=datapath, hsids=hsids,
+                           initializers={'ATGP:': ATGP, 'ATGP_sunsal': ATGP_sunsal, 'RAND': RAND,
+                                         'ATGP_szero': ATGP_szero, 'ATGP_srand': ATGP_srand})
+np.save('./test/08_20_1050.npy', results)

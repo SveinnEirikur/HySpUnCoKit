@@ -85,7 +85,7 @@ def run_method(data, resdir, num_runs):
 
 #%%
 
-def opt_method(data, resdir, max_evals):
+def opt_method(data, initializers, resdir, max_evals):
 
     dataset = data.dataset_name
     __location__ = os.path.realpath(os.path.join(os.getcwd(),
@@ -131,7 +131,7 @@ def opt_method(data, resdir, max_evals):
         'l1': hp.qloguniform('ACCESS_' + dataset + '_l1', -16, 2, 1e-7),
         'l2': hp.qloguniform('ACCESS_' + dataset + '_l2', -16, 2, 1e-7),
         'num_patches': scope.int(hp.quniform('ACCESS_' + dataset + '_num_patches', 8, 8192, 1)),
-        'batch_size': scope.int(hp.quniform('ACCESS_' + dataset + '_batch_size', 1, 50, 1))
+        'batch_size': scope.int(hp.quniform('ACCESS_' + dataset + '_batch_size', 1, 50, 1)),
     }
 
     my_data = HSI(datapath)
