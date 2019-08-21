@@ -10,18 +10,22 @@ np.random.seed(random_seed)
 random.seed(random_seed)
 
 datapath = '../../Datasets/'
-datasets = ['Urban4']#, 'Samson', 'Urban4', 'Urban6']
+datasets = ['Jasper', 'Samson', 'Urban4', 'Urban6']
 methods = ['lhalf']#, 'ACCESSUnmixing', 'matlab_lhalf']
 
-urban4 = HSID(data_path='/Volumes/Music/Datasets/Urban/Urban_R162.mat', dataset_name='Urban4', size=(307,307),
+urban4 = HSID(data_path='../../Datasets/Urban4.mat', dataset_name='Urban4', size=(307,307),
               n_bands=162, n_rows=307, n_cols=307, n_pixels=307*307, ref_var_names=('M', 'A'),
-              ref_path='/Volumes/Music/Datasets/Urban/GroundTruth/end4.mat')
-jasper = HSID(data_path='/Volumes/Music/Datasets/Jasper Ridge/jasperRidge2_R198.mat', dataset_name='Jasper',
+              ref_path='../../Datasets/Urban4_GT.mat')
+
+urban6 = HSID(data_path='../../Datasets/Urban6.mat', dataset_name='Urban6', size=(307,307),
+              n_bands=162, n_rows=307, n_cols=307, n_pixels=307*307, ref_var_names=('M', 'A'),
+              ref_path='../../Datasets/Urban6_GT.mat')
+
+jasper = HSID(data_path='../../Datasets/Jasper.mat', dataset_name='Jasper',
               size=(100,100), n_bands=198, n_rows=100, n_cols=100, n_pixels=10000, ref_var_names=('M', 'A'),
-              ref_path='/Volumes/Music/Datasets/Jasper Ridge/GroundTruth/end4.mat')
-hsids = {'Jasper': jasper, 'Urban4': urban4}
+              ref_path='../../Datasets/Jasper_GT.mat')
+hsids = {'Jasper': jasper, 'Urban4': urban4, 'Urban6': urban6}
 
 results = optimize_methods(datasets=datasets, methods=methods, datapath=datapath, hsids=hsids,
-                           initializers={'ATGP:': ATGP, 'ATGP_sunsal': ATGP_sunsal, 'RAND': RAND,
-                                         'ATGP_szero': ATGP_szero, 'ATGP_srand': ATGP_srand})
-np.save('./test/08_20_1050.npy', results)
+                           initializers={'ATGP_sunsal': ATGP_sunsal, 'VCA': VCA})
+np.save('./test/08_20_0030.npy', results)

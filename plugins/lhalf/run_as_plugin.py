@@ -50,8 +50,10 @@ def run_method(hsidata, resdir, num_runs):
         outpath = Path(resdir, resfile)
         results.append({'endmembers': A, 'abundances': S, 'loss': J, 'SAD': SAD})
         spio.savemat(outpath, results[i])
+
     with open(Path(resdir, 'datasets.cfg'), 'w') as configfile:
         parser.write(configfile)
+
     return results
 
 

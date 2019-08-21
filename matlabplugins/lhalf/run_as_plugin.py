@@ -47,7 +47,7 @@ def run_method(hsidata, resdir, num_runs):
         warn('No settings found for ' + dataset + ', using defaults.')
     q = parser.getfloat(dataset, 'q')
     delta = parser.getfloat(dataset, 'delta')
-    h = [parser.getfloat(dataset, i) for i in ['h' + str(i) for i in range(hsidata.n_endmembers)]]
+    h = matlab.double([parser.getfloat(dataset, i) for i in ['h' + str(i) for i in range(hsidata.n_endmembers)]])
     max_iter = parser.getint(dataset, 'max_iter')
     verbose = parser.getboolean(dataset, 'verbose')
     Y = matlab.double(hsidata.data.tolist())
@@ -69,12 +69,16 @@ def run_method(hsidata, resdir, num_runs):
         spio.savemat(outpath, results[i])
 
     mleng.quit()
+
+    with open(Path(resdir, 'datasets.cfg'), 'w') as configfile:
+        parser.write(configfile)
+
     return results
 
 
 #%%
 
-def opt_method(hsidata, resdir, max_evals):
+def opt_method(hsidata, initializers, resdir, max_evals):
     dataset_name = hsidata.dataset_name
 
     __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
