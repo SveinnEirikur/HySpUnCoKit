@@ -10,7 +10,7 @@ np.random.seed(random_seed)
 random.seed(random_seed)
 
 datapath = '../../Datasets/'
-datasets = ['Jasper', 'Samson', 'Urban4', 'Urban6']
+datasets = ['Urban4', 'Jasper', 'Samson', 'Urban6']
 methods = ['lhalf']#, 'ACCESSUnmixing', 'matlab_lhalf']
 
 urban4 = HSID(data_path='../../Datasets/Urban4.mat', dataset_name='Urban4', size=(307,307),
@@ -28,4 +28,4 @@ hsids = {'Jasper': jasper, 'Urban4': urban4, 'Urban6': urban6}
 
 results = optimize_methods(datasets=datasets, methods=methods, datapath=datapath, hsids=hsids,
                            initializers={'ATGP_sunsal': ATGP_sunsal, 'VCA': VCA})
-np.save('./test/08_20_0030.npy', results)
+np.save('./test/08_28_1030.npy', results)

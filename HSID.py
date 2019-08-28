@@ -49,10 +49,10 @@ class HSID:
         if self.data is None and self.data_path is not None:
             self.data_path = Path(self.data_path)
             self.load_data()
-        if self.dataset_name is None and self.data_path is not None:
-            self.dataset_name = self.dataset_name.stem
         if isinstance(self.ref_path, str):
             self.ref_path = Path(self.ref_path)
+        if self.dataset_name is None and self.data_path is not None:
+            self.dataset_name = self.dataset_name.stem
 
     def load_data(self, normalize=True, bands_to_skip=None):
         """ Loads data from .mat file in data_path into the dataclass.
@@ -147,4 +147,4 @@ class HSID:
         """
         self.init_endmembers, self.init_abundances = initializer(self.data, self.n_endmembers)
 
-        return (self.init_endmembers, self.init_abundances)
+        return self.init_endmembers, self.init_abundances

@@ -19,7 +19,7 @@ random.seed(random_seed)
 np.random.seed(random_seed)
 
 #%%
-def run_method(hsidata, resdir, num_runs):
+def run_method(hsidata, initializer, resdir, num_runs):
     __location__ = os.path.realpath(os.path.join(os.getcwd(),
                                                  os.path.dirname(__file__)))
 
@@ -37,11 +37,10 @@ def run_method(hsidata, resdir, num_runs):
 
     Y = hsidata.data
     ref_endmembers = hsidata.ref_endmembers
-    init_endmembers = hsidata.init_endmembers
-    init_abundances = hsidata.init_abundances
 
     results = []
     for i in tqdm(range(num_runs), desc="Runs", unit="runs"):
+        init_endmembers, init_abundances = hsidata.initialize(initializer)
         A, S, J, SAD = lhalf(ref_endmembers, init_endmembers,
                              init_abundances, Y, delta, h, q,
                              max_iter, verbose=verbose)
@@ -83,7 +82,8 @@ def opt_method(hsidata, initializers, resdir, max_evals):
         MSE = mse(Y, A, np.transpose(S))
         S = S.reshape(hsidata.n_rows, hsidata.n_cols, hsidata.n_endmembers).transpose((1, 0, 2))
         results = {'endmembers': A, 'abundances': S, 'loss': J, 'SAD': SAD, 'MSE': MSE}
-        return {'loss': SAD[-1], 'status': STATUS_OK, 'attachments': results}
+        loss = SAD[-1] * (1 + np.std(np.sum(S, -1).flatten())) * (1 + np.abs(1 - np.mean(np.sum(S, -1).flatten())))
+        return {'loss': loss, 'status': STATUS_OK, 'attachments': results}
 
     initials = {}
     initial_keys = []

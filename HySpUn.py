@@ -83,7 +83,7 @@ def compare_methods(datasets: list, methods: list, datapath: str = None, hsids: 
             respath = Path(results_path, timestamp, dataset, method)
             Path.mkdir(respath, parents=True, exist_ok=True)
 
-            output = plugin.run_method(hsids[dataset], respath, n_runs)
+            output = plugin.run_method(hsids[dataset], initializer, respath, n_runs)
             results[dataset][method] = output
 
     for dataset in datasets:
@@ -113,6 +113,7 @@ def optimize_methods(datasets: list, methods: list, datapath: str = None, hsids:
 
     Either datapath to load .mat files into HSID objects or dict with HSID objects must be provided.
 
+    :param initializers:
     :param datasets: list of strings of dataset names without .mat extensions, also assumed to be filenames
                     accessed at datapath/dataset.mat if dataset key is not present in hsids dict.
     :param methods: list of strings of method names, names and paths should be added to methods.cfg as well.
@@ -127,8 +128,6 @@ def optimize_methods(datasets: list, methods: list, datapath: str = None, hsids:
     """
     if hsids is None:
         hsids = {}
-
-    initials_dir = Path('./initials')
 
     config = ConfigParser()
     config.read('methods.cfg')
