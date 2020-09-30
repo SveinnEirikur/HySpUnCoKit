@@ -22,7 +22,7 @@ tqdm==4.32.1
 h5py==2.9.0
 scikit-image==0.15.0
 scikit-learn==0.21.2
-tensorflow==1.13.1
+tensorflow==1.15.4
 keras_tqdm==2.0.1
 dataclasses==0.6
 ```
